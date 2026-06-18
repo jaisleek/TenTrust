@@ -8,6 +8,7 @@ export default function Landing() {
   const [faqQuestion, setFaqQuestion] = useState<string>('');
   const [faqAnswer, setFaqAnswer] = useState<string>('');
   const [isFaqLoading, setIsFaqLoading] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const askFaq = async (question: string) => {
     setFaqQuestion(question);
@@ -93,11 +94,33 @@ export default function Landing() {
             </Link>
             
             {/* Mobile menu button */}
-            <button className="lg:hidden p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors relative z-[60]">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
             </button>
           </div>
         </div>
+
+        {/* Mobile menu overlay */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-[55] bg-white/95 dark:bg-slate-950/95 backdrop-blur-md flex flex-col pt-28 px-6 pb-6 overflow-y-auto w-full h-screen">
+            <div className="flex flex-col gap-3 mt-4">
+              <Link to="/chat" className="px-6 py-4 text-center text-lg font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl" onClick={() => setIsMobileMenuOpen(false)}>Chat AI</Link>
+              <a href="#how-it-works" onClick={(e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({behavior: 'smooth'}); setIsMobileMenuOpen(false); }} className="px-6 py-4 text-center text-lg font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl">How it Works</a>
+              <a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({behavior: 'smooth'}); setIsMobileMenuOpen(false); }} className="px-6 py-4 text-center text-lg font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl">For Landlords</a>
+              <a href="#tenants" onClick={(e) => { e.preventDefault(); document.getElementById('tenants')?.scrollIntoView({behavior: 'smooth'}); setIsMobileMenuOpen(false); }} className="px-6 py-4 text-center text-lg font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl">For Tenants</a>
+              <Link to="/listings" className="px-6 py-4 text-center text-lg font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl" onClick={() => setIsMobileMenuOpen(false)}>Browse Listings</Link>
+              <div className="h-px bg-slate-200 dark:bg-slate-800 my-4"></div>
+              <Link to="/auth?type=landlord" className="px-6 py-4 text-lg font-bold text-center text-brand-600 dark:text-brand-400 border-2 border-brand-200 dark:border-brand-800 rounded-2xl" onClick={() => setIsMobileMenuOpen(false)}>Landlord Login</Link>
+              <Link to="/auth?type=tenant" className="px-6 py-4 text-lg font-bold text-center text-white bg-slate-900 dark:bg-slate-800 rounded-2xl" onClick={() => setIsMobileMenuOpen(false)}>Tenant Login</Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}

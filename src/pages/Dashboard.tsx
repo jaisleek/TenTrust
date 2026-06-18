@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { ShieldCheck, LayoutDashboard, Building, Users, Wallet, Bell, Search, Plus, MapPin, MoreVertical, CheckCircle2, Clock, TrendingUp, UploadCloud, FileText, Camera } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Building, Users, Wallet, Bell, Search, Plus, MapPin, MoreVertical, CheckCircle2, Clock, TrendingUp, UploadCloud, FileText, Camera, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, Legend, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { mockApplications, mockFinancials } from '../data';
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimationResult, setEstimationResult] = useState<any>(null);
   const [isEstimating, setIsEstimating] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -151,8 +152,67 @@ export default function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-slate-50 font-sans flex text-slate-900">
+      
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <aside className="relative flex-1 max-w-[280px] w-full bg-white h-full flex flex-col shadow-2xl animate-fade-in-up">
+            <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100">
+              <Link to="/" className="flex items-center gap-2">
+                <ShieldCheck className="w-7 h-7 text-brand-600" />
+                <span className="font-heading font-bold text-xl tracking-tight">TenTrust<span className="text-brand-600">.</span></span>
+              </Link>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-1 flex-1 overflow-y-auto">
+              <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 mt-2">Landlord Menu</p>
+              {[
+                { id: 'overview', label: 'My Dashboard', icon: LayoutDashboard },
+                { id: 'properties', label: 'My Properties', icon: Building },
+                { id: 'add-property', label: 'List Property', icon: Plus },
+                { id: 'applications', label: 'Review Tenants', icon: Users },
+                { id: 'tenant-pool', label: 'Verified Tenants', icon: Search },
+                { id: 'reminders', label: 'Automated Reminders', icon: Bell },
+                { id: 'estimator', label: 'AI Rent Estimator', icon: TrendingUp },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeTab === item.id 
+                      ? 'bg-brand-50 text-brand-700 border border-brand-100' 
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-brand-600' : 'text-slate-400'}`} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-white">
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold uppercase shrink-0">
+                  {(user?.firstName || 'U')[0]}
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{user?.firstName || 'User'} {(user?.lastName || '').charAt(0)}.</p>
+                  <p className="text-xs text-slate-500 truncate">Verified Landlord</p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 mt-3 px-3">
+                <Link to="/profile" className="text-left text-xs font-medium text-slate-600 hover:text-brand-600 py-2 transition-colors">Profile Settings</Link>
+                <button onClick={() => logout()} className="text-left text-xs font-medium text-red-600 hover:text-red-700 py-2 transition-colors">Log Out</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col shrink-0">
         <div className="h-20 flex items-center px-6 border-b border-slate-100">
           <Link to="/" className="flex items-center gap-2">
@@ -205,15 +265,23 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Header */}
-        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 lg:px-8 shrink-0">
-          <h1 className="text-2xl font-heading font-bold text-slate-900 capitalize">
-            {activeTab.replace('-', ' ')}
-          </h1>
-          <div className="flex items-center gap-4">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl lg:text-2xl font-heading font-bold text-slate-900 capitalize truncate max-w-[150px] sm:max-w-xs">
+              {activeTab.replace('-', ' ')}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4">
             <NotificationsPopover />
             <Link to="/listings" className="text-sm font-medium text-brand-600 hover:text-brand-700 underline hidden sm:block mr-2">View Public Listings</Link>
-            <button onClick={() => setActiveTab('add-property')} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm">
-              <Plus className="w-5 h-5" /> List New Property
+            <button onClick={() => setActiveTab('add-property')} className="bg-slate-900 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5 sm:gap-2 shadow-sm">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">List New Property</span><span className="sm:hidden">List</span>
             </button>
           </div>
         </header>

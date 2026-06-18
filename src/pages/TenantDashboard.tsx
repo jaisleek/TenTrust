@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, User, Building, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { ShieldCheck, User, Building, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Clock, Menu, X, TrendingUp as TrendingUpIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -13,6 +13,7 @@ export default function TenantDashboard() {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<any[]>([]);
   const [properties, setProperties] = useState<Record<string, any>>({});
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -54,18 +55,26 @@ export default function TenantDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
       {/* Header */}
-      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 lg:px-8 shrink-0">
-        <Link to="/" className="flex items-center gap-2">
-          <ShieldCheck className="w-8 h-8 text-brand-600" />
-          <span className="font-heading font-bold text-2xl text-slate-900 tracking-tight">TenTrust<span className="text-brand-600">.</span></span>
-        </Link>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 relative z-50">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="sm:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          <Link to="/" className="flex items-center gap-2">
+            <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-brand-600" />
+            <span className="font-heading font-bold text-xl sm:text-2xl text-slate-900 tracking-tight">TenTrust<span className="text-brand-600">.</span></span>
+          </Link>
+        </div>
+        <div className="flex items-center gap-4">
            <NotificationsPopover />
            <Link to="/listings" className="text-sm font-medium text-brand-600 hover:underline hidden sm:block">Find Properties</Link>
-           <button onClick={() => logout()} className="text-sm font-medium text-red-600 hover:underline mr-4 hidden sm:block">Log Out</button>
-           <div className="relative group flex items-center gap-3 border border-slate-200 px-3 py-1.5 rounded-full hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold uppercase">{(user.firstName || 'U')[0]}</div>
-              <span className="text-sm font-bold text-slate-900">{user.firstName || 'User'} {(user.lastName || '').charAt(0)}.</span>
+           <button onClick={() => logout()} className="text-sm font-medium text-red-600 hover:underline hidden sm:block mr-2">Log Out</button>
+           <div className="relative group flex items-center gap-3 border border-slate-200 px-3 py-1.5 rounded-full hover:bg-slate-50 cursor-pointer transition-colors hidden sm:flex">
+              <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold uppercase shrink-0">{(user.firstName || 'U')[0]}</div>
+              <span className="text-sm font-bold text-slate-900 overflow-hidden truncate max-w-[120px]">{user.firstName || 'User'} {(user.lastName || '').charAt(0)}.</span>
               
               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                 <div className="p-2 flex flex-col gap-1">
@@ -75,6 +84,24 @@ export default function TenantDashboard() {
               </div>
            </div>
         </div>
+
+        {/* Mobile Dropdown Panel */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-200 shadow-xl overflow-hidden flex flex-col pt-2 pb-4 px-4 gap-2">
+             <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl mb-2 border border-slate-100">
+               <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold uppercase shrink-0">{(user.firstName || 'U')[0]}</div>
+               <div className="flex flex-col overflow-hidden">
+                 <span className="text-sm font-bold text-slate-900 truncate">{user.firstName} {user.lastName}</span>
+                 <span className="text-xs text-slate-500">Tenant</span>
+               </div>
+             </div>
+             
+             <Link to="/listings" className="px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl" onClick={() => setIsMobileMenuOpen(false)}>Find Properties</Link>
+             <Link to="/profile" className="px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl" onClick={() => setIsMobileMenuOpen(false)}>Profile Settings</Link>
+             <div className="h-px bg-slate-100 my-2"></div>
+             <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl">Log Out</button>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-6 lg:p-10 space-y-8">

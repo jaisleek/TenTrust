@@ -1,302 +1,246 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, Building, User, ArrowRight, CheckCircle2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { ShieldCheck, User, Building, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Clock, Menu, X, TrendingUp as TrendingUpIcon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
+import { mockProperties } from '../data';
+import NotificationsPopover from '../components/NotificationsPopover';
+import RecentActivityFeed from '../components/RecentActivityFeed';
 
-export default function Auth() {
-  const [searchParams] = useSearchParams();
-  const [authType, setAuthType] = useState<'landlord' | 'tenant'>((searchParams.get('type') as 'landlord' | 'tenant') || 'landlord');
-  const [isSignUp, setIsSignUp] = useState(false);
+export default function TenantDashboard() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { loginWithGoogle, loginWithEmail, signupWithEmail, user } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [properties, setProperties] = useState<Record<string, any>>({});
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (user && !message) {
-      const redirectUrl = searchParams.get('redirect');
-      if (redirectUrl) {
-        navigate(redirectUrl);
-      } else if (user.role === 'landlord') {
-        navigate('/dashboard');
-      } else {
-        navigate('/tenant');
-      }
+    if (!user) {
+      navigate('/auth');
+      return;
     }
-  }, [user, navigate, searchParams, message]);
 
-  const handleGoogleSignIn = async () => {
-    setIsProcessing(true);
-    setError(null);
-    try {
-      await loginWithGoogle(authType);
-    } catch (error: any) {
-      console.error(error);
-      setError(error.message || 'An error occurred with Google Sign-In');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    const appQ = query(collection(db, 'applications'), where('tenantId', '==', user.id));
+    const unsubscribe = onSnapshot(appQ, async (snapshot) => {
+      const fetchedApps: any[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setApplications(fetchedApps.sort((a, b) => b.createdAt - a.createdAt));
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-    setError(null);
-    setMessage(null);
-    try {
-      if (isSignUp) {
-        await signupWithEmail(email, password, firstName, lastName, authType);
-        setMessage('Registration successful! A verification email has been sent. Please check your inbox (and Spam/Junk folder) to verify your account.');
-        setTimeout(() => setMessage(null), 8000);
-      } else {
-        await loginWithEmail(email, password, authType);
+      // Fetch distinct property info
+      const propsData: Record<string, any> = {};
+      for (const app of fetchedApps) {
+        if (!propsData[app.propertyId]) {
+          const pDoc = await getDoc(doc(db, 'properties', app.propertyId));
+          if (pDoc.exists()) {
+            propsData[app.propertyId] = pDoc.data();
+          } else {
+            const mockP = mockProperties.find(p => p.id === app.propertyId);
+            if (mockP) propsData[app.propertyId] = mockP;
+          }
+        }
       }
-    } catch (error: any) {
-      console.error(error);
-      setError(error.message || 'Authentication failed. Please check your credentials.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+      setProperties(prev => ({...prev, ...propsData}));
+    }, (error) => {
+       handleFirestoreError(error, OperationType.LIST, 'applications');
+    });
+
+    return () => unsubscribe();
+  }, [user, navigate]);
+
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
-      {/* Left side - Branding / Info */}
-      <div className={`hidden md:flex flex-2 lg:w-5/12 p-12 text-white flex-col justify-between relative overflow-hidden transition-colors duration-500 ${authType === 'landlord' ? 'bg-brand-950' : 'bg-emerald-950'}`}>
-        {/* Background Decorative patterns */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className={`absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 ${authType === 'landlord' ? 'bg-brand-500/20' : 'bg-emerald-500/20'}`}></div>
-
-        <div className="relative z-10 w-full">
-          <Link to="/" className="flex items-center gap-2 mb-16">
-            <ShieldCheck className="w-8 h-8 text-white" />
-            <span className="font-heading font-bold text-2xl tracking-tight text-white">TenTrust<span className={authType === 'landlord' ? "text-brand-400" : "text-emerald-400"}>.</span></span>
+    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
+      {/* Header */}
+      <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 relative z-50">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="sm:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          <Link to="/" className="flex items-center gap-2">
+            <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-brand-600" />
+            <span className="font-heading font-bold text-xl sm:text-2xl text-slate-900 tracking-tight">TenTrust<span className="text-brand-600">.</span></span>
           </Link>
-
-          <div>
-            <div className="inline-block px-3 py-1 bg-white/10 border border-white/20 rounded-full text-sm font-semibold tracking-wide text-white mb-6 backdrop-blur-sm">
-              {authType === 'landlord' ? 'For Property Owners' : 'For Renters'}
-            </div>
-            
-            <h1 className="text-4xl lg:text-5xl font-heading font-bold mb-6 leading-[1.1]">
-              {authType === 'landlord' 
-                ? 'Managing your rentals shouldn\'t be a gamble.' 
-                : 'Build your trust. Access better housing.'}
-            </h1>
-            
-            <p className="text-lg text-slate-300 mb-12 max-w-md leading-relaxed">
-              {authType === 'landlord'
-                ? 'Get access to strictly verified tenants, guaranteed rent collections through Casiec Financials, and an automated portfolio dashboard.'
-                : 'A strong TenTrust score unlocks prime properties and flexible rent financing via Casiec. Pay how you want.'}
-            </p>
-
-            <ul className="space-y-4">
-              {[
-                authType === 'landlord' ? 'NIN/BVN Verified Tenant Reports' : 'Create your secure rental identity',
-                authType === 'landlord' ? 'Guaranteed Payouts with Casiec' : 'Access Casiec Rent Financing',
-                authType === 'landlord' ? 'Centralized Portfolio Tracking' : 'Build a portable credit score',
-              ].map((benefit, i) => (
-                <li key={i} className="flex items-center gap-3 text-slate-200">
-                  <CheckCircle2 className={`w-5 h-5 ${authType === 'landlord' ? 'text-brand-400' : 'text-emerald-400'}`} />
-                  <span className="font-medium">{benefit}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
-
-        <div className="relative z-10 text-sm text-slate-400 font-medium pb-4">
-          © 2026 TenTrust Africa
-        </div>
-      </div>
-
-      {/* Right side - Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-white relative">
-        <Link to="/" className="md:hidden flex items-center gap-2 mb-12 self-start">
-          <ShieldCheck className="w-8 h-8 text-brand-600" />
-          <span className="font-heading font-bold text-2xl tracking-tight text-slate-900">TenTrust<span className="text-brand-600">.</span></span>
-        </Link>
-
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-heading font-bold text-slate-900 mb-2">
-              {isSignUp ? 'Create your account' : `Sign in to your ${authType === 'landlord' ? 'Landlord' : 'Tenant'} dashboard`}
-            </h2>
-          </div>
-
-          <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
-            <button
-              type="button"
-              onClick={() => setAuthType('landlord')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                authType === 'landlord' ? 'bg-white text-brand-700 shadow-sm border-slate-200' : 'text-slate-500 hover:text-brand-600 hover:bg-white/50'
-              }`}
-            >
-              <Building className="w-4 h-4" /> Landlord
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthType('tenant')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                authType === 'tenant' ? 'bg-white text-emerald-700 shadow-sm border-slate-200' : 'text-slate-500 hover:text-emerald-600 hover:bg-white/50'
-              }`}
-            >
-              <User className="w-4 h-4" /> Tenant
-            </button>
-          </div>
-
-          {error && (
-             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm">
-                {error}
-             </div>
-          )}
-
-          {message && (
-             <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl mb-6 text-sm">
-                {message}
-             </div>
-          )}
-
-          <form onSubmit={handleEmailAuth} className="space-y-5">
-            {isSignUp && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700 font-semibold">First Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="John"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium text-slate-900 transition-all placeholder:font-normal"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700 font-semibold">Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium text-slate-900 transition-all placeholder:font-normal"
-                  />
+        <div className="flex items-center gap-4">
+           <NotificationsPopover />
+           <Link to="/listings" className="text-sm font-medium text-brand-600 hover:underline hidden sm:block">Find Properties</Link>
+           <button onClick={() => logout()} className="text-sm font-medium text-red-600 hover:underline hidden sm:block mr-2">Log Out</button>
+           <div className="relative group flex items-center gap-3 border border-slate-200 px-3 py-1.5 rounded-full hover:bg-slate-50 cursor-pointer transition-colors hidden sm:flex">
+              <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold uppercase shrink-0">{(user.firstName || 'U')[0]}</div>
+              <span className="text-sm font-bold text-slate-900 overflow-hidden truncate max-w-[120px]">{user.firstName || 'User'} {(user.lastName || '').charAt(0)}.</span>
+              
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="p-2 flex flex-col gap-1">
+                  <Link to="/profile" className="block px-3 py-2 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors">Profile Settings</Link>
+                  <button onClick={() => logout()} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">Log Out</button>
                 </div>
               </div>
+           </div>
+        </div>
+
+        {/* Mobile Dropdown Panel */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-200 shadow-xl overflow-hidden flex flex-col pt-2 pb-4 px-4 gap-2">
+             <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl mb-2 border border-slate-100">
+               <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold uppercase shrink-0">{(user.firstName || 'U')[0]}</div>
+               <div className="flex flex-col overflow-hidden">
+                 <span className="text-sm font-bold text-slate-900 truncate">{user.firstName} {user.lastName}</span>
+                 <span className="text-xs text-slate-500">Tenant</span>
+               </div>
+             </div>
+             
+             <Link to="/listings" className="px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl" onClick={() => setIsMobileMenuOpen(false)}>Find Properties</Link>
+             <Link to="/profile" className="px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl" onClick={() => setIsMobileMenuOpen(false)}>Profile Settings</Link>
+             <div className="h-px bg-slate-100 my-2"></div>
+             <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl">Log Out</button>
+          </div>
+        )}
+      </header>
+
+      <main className="flex-1 max-w-5xl w-full mx-auto p-6 lg:p-10 space-y-8">
+        
+        {/* Welcome & Score */}
+        <div className="bg-brand-950 text-white rounded-3xl p-8 relative overflow-hidden shadow-xl">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-800 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2"></div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="max-w-xl">
+              <h1 className="text-3xl font-heading font-bold mb-2">Welcome back, {user.firstName || 'Friend'}!</h1>
+              <p className="text-brand-100">Your profile is looking great. Keep up the good payment history to unlock specialized Casiec financial rewards.</p>
+            </div>
+            
+            <div className="text-center bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 min-w-[200px]">
+              <p className="text-brand-100 text-sm font-medium mb-1">TenTrust Score</p>
+              <p className="text-5xl font-bold font-heading text-white">{applications.length > 0 ? applications[0].trustScore : 840}</p>
+              <div className="mt-3 inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-full text-xs font-semibold">
+                <TrendingUpIcon className="w-3 h-3" /> Excellent
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {applications.length > 0 && (
+           <div className="bg-red-50 border border-red-100 text-red-900 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-pulse-slow">
+             <div className="flex items-start gap-4">
+               <div className="bg-red-100 p-2 rounded-full text-red-600 shrink-0">
+                 <AlertCircle className="w-6 h-6" />
+               </div>
+               <div>
+                 <h3 className="font-heading font-bold text-lg mb-1">Rent Reminder: Due in 3 Days</h3>
+                 <p className="text-red-700 text-sm">Your upcoming rent cycle for <strong>{properties[applications[0].propertyId]?.title || 'your property'}</strong> is due in 3 days. Please make payment early to maintain your Trust Score and avoid late penalties.</p>
+               </div>
+             </div>
+             <button className="whitespace-nowrap bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-sm">
+               Pay Rent Now
+             </button>
+           </div>
+        )}
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Casiec Verification Section */}
+          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm relative">
+            <div className="absolute top-8 right-8 text-slate-200">
+               <ShieldCheck className="w-12 h-12" />
+            </div>
+            <h2 className="text-xl font-heading font-bold text-slate-900 mb-6">Credit & Trust Profile</h2>
+            <div className="space-y-6">
+              
+              <div className="flex gap-4">
+                <div className="mt-1"><CheckCircle2 className={`w-6 h-6 ${applications.length > 0 ? 'text-emerald-500' : 'text-slate-300'}`} /></div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Identity & Income</h3>
+                  <p className="text-sm text-slate-600 mt-1">{applications.length > 0 ? 'NIN, BVN, and employment confirmed via KYC.' : 'Submit an application to complete KYC.'}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="mt-1"><AlertCircle className="w-6 h-6 text-emerald-500" /></div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Payment History</h3>
+                  <p className="text-sm text-slate-600 mt-1">Good standing. Zero eviction records found.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-slate-100">
+                <div className="mt-1"><CreditCard className="w-6 h-6 text-brand-600" /></div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Casiec Rent Financing</h3>
+                  <p className="text-sm text-slate-600 mt-1 mb-3">You are eligible to apply for flexible rent payments powered by Casiec Financials. Pre-approved limit: <strong>₦5,000,000</strong></p>
+                  <a href="https://casiecfinancials.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-brand-600 hover:text-brand-700 bg-brand-50 px-4 py-2 rounded-lg transition-colors">
+                    Apply on Casiec <ChevronRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Applications */}
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex flex-col p-8">
+            <h2 className="text-xl font-heading font-bold text-slate-900 mb-6">Your Applications</h2>
+            {applications.length === 0 ? (
+               <div className="text-center py-8">
+                 <p className="text-slate-500 mb-4">You haven't applied for any properties yet.</p>
+                 <div className="flex flex-col gap-3 items-center justify-center">
+                    <Link to="/listings" className="text-brand-600 font-bold hover:underline">Browse Listings</Link>
+                    <Link to="/apply/pre-approval" className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm">
+                      Get Pre-Approved (KYC)
+                    </Link>
+                 </div>
+               </div>
+            ) : (
+               <div className="space-y-4 flex-1 overflow-y-auto">
+                 <div className="pb-2 mb-2 border-b border-slate-100 flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-500">Recent Applications</span>
+                    <Link to="/apply/pre-approval" className="text-xs font-bold bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition-colors">
+                      New Pre-Approval KYC
+                    </Link>
+                 </div>
+                 {applications.map(app => {
+                    const property = properties[app.propertyId];
+                    return (
+                      <div key={app.id} className="border border-slate-100 rounded-xl p-4 flex gap-4">
+                         {property?.coverImage && <img src={property.coverImage} className="w-20 h-20 rounded-lg object-cover" alt="Property" />}
+                         <div className="flex-1">
+                           <h3 className="font-bold text-slate-900">{property?.title || 'Pre-Approval Request'}</h3>
+                           <p className="text-sm text-slate-500 mb-2">KYC Submitted</p>
+                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                             app.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
+                             app.status === 'rejected' ? 'bg-red-50 text-red-700' :
+                             'bg-amber-50 text-amber-700'
+                           }`}>
+                             {app.status === 'approved' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                             {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                           </span>
+                         </div>
+                      </div>
+                    )
+                 })}
+               </div>
             )}
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 font-semibold">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium text-slate-900 transition-all placeholder:font-normal"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700 font-semibold">Password</label>
-                {!isSignUp && (
-                  <button type="button" className={`text-sm font-bold ${authType === 'landlord' ? 'text-brand-600 hover:text-brand-700' : 'text-emerald-600 hover:text-emerald-700'}`}>
-                     Forgot password?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••"
-                  className="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium text-slate-900 transition-all placeholder:font-normal"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button 
-              type="submit"
-              disabled={isProcessing}
-              className={`w-full py-3.5 mt-2 rounded-xl text-white font-bold flex justify-center items-center gap-2 transition-all shadow-sm disabled:opacity-75 disabled:cursor-not-allowed ${authType === 'landlord' ? 'bg-brand-600 hover:bg-brand-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-            >
-               {isProcessing ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')} <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          <div className="relative flex items-center py-6 my-2">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-xs font-medium text-slate-400">Or continue with</span>
-            <div className="flex-grow border-t border-slate-200"></div>
           </div>
-
-          <div className="space-y-4">
-            <button 
-              type="button" 
-              onClick={handleGoogleSignIn}
-              disabled={isProcessing}
-              className="w-full py-3.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl flex justify-center items-center gap-3 transition-all hover:bg-slate-50 shadow-sm disabled:opacity-75 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-                <path d="M1 1h22v22H1z" fill="none" />
-              </svg>
-               {isProcessing ? 'Please wait...' : `Sign ${isSignUp ? 'Up' : 'In'} with Google`}
-            </button>
-          </div>
-
-          <div className="mt-8 text-center text-sm font-medium text-slate-500">
-             {isSignUp ? (
-               <>Already have an account? <button type="button" onClick={() => setIsSignUp(false)} className={`font-bold ${authType === 'landlord' ? 'text-brand-600 hover:text-brand-700' : 'text-emerald-600 hover:text-emerald-700'}`}>Sign in</button></>
-             ) : (
-               <>New to TenTrust? <button type="button" onClick={() => setIsSignUp(true)} className={`font-bold ${authType === 'landlord' ? 'text-brand-600 hover:text-brand-700' : 'text-emerald-600 hover:text-emerald-700'}`}>Create an account</button></>
-             )}
-          </div>
-
         </div>
-      </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="h-[400px]">
+             <RecentActivityFeed userId={user.id} role={user.role} />
+          </div>
+        </div>
+      </main>
     </div>
   );
+}
+
+function TrendingUpIcon(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
 }
