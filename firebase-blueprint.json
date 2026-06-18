@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user (landlord or tenant)",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "role": { "type": "string", "enum": ["landlord", "tenant"] },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "number", "description": "Timestamp" },
+        "updatedAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["email", "firstName", "lastName", "role", "verified", "createdAt", "updatedAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Represents a listed property",
+      "type": "object",
+      "properties": {
+        "landlordId": { "type": "string" },
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "type": { "type": "string", "enum": ["rent", "shortlet", "sale"] },
+        "rentAmount": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string", "enum": ["Vacant", "Occupied"] },
+        "coverImage": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["landlordId", "title", "location", "type", "rentAmount", "currency", "status", "createdAt", "updatedAt"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Represents a tenant's application for a property",
+      "type": "object",
+      "properties": {
+        "propertyId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "landlordId": { "type": "string" },
+        "trustScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "kycData": {
+          "type": "object",
+          "properties": {
+             "fullName": { "type": "string" },
+             "phone": { "type": "string" },
+             "maritalStatus": { "type": "string" },
+             "currentAddress": { "type": "string" },
+             "employmentStatus": { "type": "string" },
+             "employerName": { "type": "string" },
+             "monthlyIncome": { "type": "number" },
+             "bvnnin": { "type": "string" },
+             "nextOfKinName": { "type": "string" },
+             "nextOfKinPhone": { "type": "string" },
+             "guarantorName": { "type": "string" },
+             "guarantorPhone": { "type": "string" },
+             "previousLandlord": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["propertyId", "tenantId", "landlordId", "status", "kycData", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles"
+    },
+    "properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Stores property listings"
+    },
+    "applications/{applicationId}": {
+      "schema": { "$ref": "#/entities/Application" },
+      "description": "Stores applications for properties"
+    }
+  }
+}

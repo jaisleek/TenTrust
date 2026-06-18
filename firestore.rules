@@ -1,0 +1,145 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Constants & Helpers
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // User Model
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'firstName', 'lastName', 'role', 'verified', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 7
+        && data.email is string && data.email.size() <= 200
+        && data.firstName is string && data.firstName.size() <= 100
+        && data.lastName is string && data.lastName.size() <= 100
+        && data.role in ['landlord', 'tenant']
+        && data.verified is bool
+        && data.createdAt is number
+        && data.updatedAt is number;
+    }
+
+    match /users/{userId} {
+      // allow read to everyone who is signed in (for the prototype, assuming we need names)
+      // For strict PII isolation, we would split it.
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().createdAt is number
+                    && (incoming().role == 'landlord' || incoming().role == 'tenant');
+      allow update: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['firstName', 'lastName', 'updatedAt'])
+                    && incoming().updatedAt is number
+                    && incoming().role == existing().role
+                    && incoming().createdAt == existing().createdAt;
+    }
+
+    // Property Model
+    function isValidProperty(data) {
+       return data.keys().hasAll(['landlordId', 'title', 'location', 'type', 'rentAmount', 'currency', 'status', 'coverImage', 'createdAt', 'updatedAt'])
+         && data.keys().size() == 10
+         && data.landlordId is string && data.landlordId.size() <= 128
+         && data.title is string && data.title.size() <= 200
+         && data.location is string && data.location.size() <= 500
+         && data.type in ['rent', 'shortlet', 'sale']
+         && data.rentAmount is number
+         && data.currency is string && data.currency.size() <= 10
+         && data.status in ['Vacant', 'Occupied']
+         && data.coverImage is string && data.coverImage.size() <= 1000
+         && data.createdAt is number
+         && data.updatedAt is number;
+    }
+
+    match /properties/{propertyId} {
+      // Anyone can read properties
+      allow read: if true; 
+      allow create: if isSignedIn()
+                    && isValidId(propertyId)
+                    && isValidProperty(incoming())
+                    && incoming().landlordId == request.auth.uid
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'landlord'
+                    && incoming().createdAt is number;
+      allow update: if isSignedIn()
+                    && isValidId(propertyId)
+                    && existing().landlordId == request.auth.uid
+                    && incoming().landlordId == existing().landlordId
+                    && isValidProperty(incoming())
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().updatedAt is number;
+                    // We can be more strict here with affected keys, but allowing standard updates to properties for the owner
+      allow delete: if isSignedIn() && existing().landlordId == request.auth.uid;
+    }
+
+    // Application Model
+    function isValidApplication(data) {
+       return data.keys().hasAll(['propertyId', 'tenantId', 'landlordId', 'status', 'createdAt', 'updatedAt', 'trustScore', 'kycData'])
+         && data.keys().size() == 8
+         && data.propertyId is string && data.propertyId.size() <= 128
+         && data.tenantId is string && data.tenantId.size() <= 128
+         && data.landlordId is string && data.landlordId.size() <= 128
+         && data.trustScore is number
+         && data.status in ['pending', 'approved', 'rejected']
+         && data.createdAt is number
+         && data.updatedAt is number
+         && data.kycData is map;
+    }
+
+    match /applications/{applicationId} {
+      // Tenant can read their own applications, Landlord can read applications for their properties
+      allow read: if isSignedIn() && (
+                    resource.data.tenantId == request.auth.uid || 
+                    resource.data.landlordId == request.auth.uid
+                  );
+      
+      allow create: if isSignedIn()
+                    && isValidId(applicationId)
+                    && isValidApplication(incoming())
+                    && incoming().tenantId == request.auth.uid
+                    && exists(/databases/$(database)/documents/properties/$(incoming().propertyId))
+                    // Ensure the tenant has the tenant role
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant'
+                    && get(/databases/$(database)/documents/properties/$(incoming().propertyId)).data.landlordId == incoming().landlordId
+                    && incoming().status == 'pending'
+                    && incoming().createdAt is number;
+
+      allow update: if isSignedIn()
+                    && isValidId(applicationId)
+                    && isValidApplication(incoming())
+                    && existing().tenantId == incoming().tenantId
+                    && existing().propertyId == incoming().propertyId
+                    && existing().landlordId == incoming().landlordId
+                    && existing().createdAt == incoming().createdAt
+                    && incoming().updatedAt is number
+                    && (
+                      // Only landlord can update the status
+                      (existing().landlordId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+                    );
+    }
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid 
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      // We allow any authenticated user to create a notification for another user 
+      // (e.g. tenant creates property interest notification for landlord)
+      allow create: if isSignedIn()
+                    && incoming().keys().hasAll(['userId', 'title', 'body', 'read', 'type', 'createdAt'])
+                    && incoming().userId is string
+                    && incoming().title is string
+                    && incoming().body is string
+                    && incoming().read is bool
+                    && incoming().type is string
+                    && incoming().createdAt is number;
+    }
+  }
+}
