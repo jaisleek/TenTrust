@@ -1,6 +1,6 @@
 {
-  "name": "TenTrust",
-  "description": "Tenant Verification & Smart Rent Management for Africa",
+  "name": "Remix: TenTrust",
+  "description": "Tenant Verification \u0026 Smart Rent Management for Africa",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

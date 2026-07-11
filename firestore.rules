@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     // 2. Constants & Helpers
-    function isSignedIn() { return request.auth != null; }
+    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
@@ -34,13 +34,13 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && isValidId(userId)
                     && isValidUser(incoming())
-                    && incoming().createdAt is number
+                    && incoming().createdAt == request.time.toMillis()
                     && (incoming().role == 'landlord' || incoming().role == 'tenant');
       allow update: if isOwner(userId)
                     && isValidId(userId)
                     && isValidUser(incoming())
                     && incoming().diff(existing()).affectedKeys().hasOnly(['firstName', 'lastName', 'updatedAt'])
-                    && incoming().updatedAt is number
+                    && incoming().updatedAt == request.time.toMillis()
                     && incoming().role == existing().role
                     && incoming().createdAt == existing().createdAt;
     }
@@ -69,14 +69,14 @@ service cloud.firestore {
                     && isValidProperty(incoming())
                     && incoming().landlordId == request.auth.uid
                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'landlord'
-                    && incoming().createdAt is number;
+                    && incoming().createdAt == request.time.toMillis();
       allow update: if isSignedIn()
                     && isValidId(propertyId)
                     && existing().landlordId == request.auth.uid
                     && incoming().landlordId == existing().landlordId
                     && isValidProperty(incoming())
                     && incoming().createdAt == existing().createdAt
-                    && incoming().updatedAt is number;
+                    && incoming().updatedAt == request.time.toMillis();
                     // We can be more strict here with affected keys, but allowing standard updates to properties for the owner
       allow delete: if isSignedIn() && existing().landlordId == request.auth.uid;
     }
@@ -111,7 +111,7 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant'
                     && get(/databases/$(database)/documents/properties/$(incoming().propertyId)).data.landlordId == incoming().landlordId
                     && incoming().status == 'pending'
-                    && incoming().createdAt is number;
+                    && incoming().createdAt == request.time.toMillis();
 
       allow update: if isSignedIn()
                     && isValidId(applicationId)
@@ -120,26 +120,11 @@ service cloud.firestore {
                     && existing().propertyId == incoming().propertyId
                     && existing().landlordId == incoming().landlordId
                     && existing().createdAt == incoming().createdAt
-                    && incoming().updatedAt is number
+                    && incoming().updatedAt == request.time.toMillis()
                     && (
                       // Only landlord can update the status
                       (existing().landlordId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
                     );
-    }
-    match /notifications/{notificationId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid 
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-      // We allow any authenticated user to create a notification for another user 
-      // (e.g. tenant creates property interest notification for landlord)
-      allow create: if isSignedIn()
-                    && incoming().keys().hasAll(['userId', 'title', 'body', 'read', 'type', 'createdAt'])
-                    && incoming().userId is string
-                    && incoming().title is string
-                    && incoming().body is string
-                    && incoming().read is bool
-                    && incoming().type is string
-                    && incoming().createdAt is number;
     }
   }
 }

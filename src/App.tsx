@@ -11,7 +11,6 @@ import Listings from './pages/Listings';
 import Auth from './pages/Auth';
 import KYCForm from './pages/KYCForm';
 import Chat from './pages/Chat';
-import ProfileSettings from './pages/ProfileSettings';
 import { AuthProvider } from './context/AuthContext';
 import AIChatbot from './components/AIChatbot';
 
@@ -27,7 +26,6 @@ export default function App() {
           <Route path="/listings" element={<Listings />} />
           <Route path="/apply/:propertyId" element={<KYCForm />} />
           <Route path="/chat" element={<Chat />} />
-          <Route path="/profile" element={<ProfileSettings />} />
         </Routes>
         <AIChatbot />
       </BrowserRouter>

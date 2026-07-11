@@ -19,7 +19,7 @@ async function startServer() {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.5-flash",
         contents: `Act as a real estate pricing AI for Lagos, Nigeria. The user will provide property details. Give a realistic estimated rent range in NGN per year, a short 2-sentence market analysis, and a confidence score out of 100%. Return only a JSON object matching this structure: {"estimatedRange": "₦X,XXX,XXX - ₦Y,YYY,YYY", "analysis": "...", "confidence": 85}. Details: ${propertyDetails}`,
         config: {
           responseMimeType: "application/json",
@@ -28,8 +28,7 @@ async function startServer() {
       res.json(JSON.parse(response.text || '{}'));
     } catch (error: any) {
       console.error(error);
-      const isQuota = error.status === 429 || error.message?.includes('429');
-      res.status(isQuota ? 429 : 500).json({ error: isQuota ? "I'm currently receiving too many requests. Please try again in a few seconds." : error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -42,21 +41,18 @@ async function startServer() {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.5-flash",
         contents: message,
         config: {
-          systemInstruction: `You are an AI assistant for TenTrust, a real estate platform connecting verified tenants and landlords in Lagos, Nigeria. 
-          CRITICAL INSTRUCTION: You must strictly ONLY answer questions related to real estate, property information, renting, and the TenTrust platform solutions. 
-          If a user asks about any other topic (e.g. programming, weather, general knowledge), politely decline and state that you can only help with real estate and TenTrust.
-          Use this context about properties and the platform: ${context}.
-          Be helpful and keep answers concise.`,
+          systemInstruction: `You are an AI assistant for TenTrust, a real estate platform. 
+          Use this context about properties and the platform to answer questions: ${context}.
+          Be helpful to both landlords and tenants. Keep answers concise.`,
         }
       });
       res.json({ reply: response.text });
     } catch (error: any) {
       console.error(error);
-      const isQuota = error.status === 429 || error.message?.includes('429');
-      res.status(isQuota ? 429 : 500).json({ error: isQuota ? "I'm currently receiving too many requests. Please try again in a few seconds." : error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -67,7 +63,11 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false,
+        watch: { usePolling: true, interval: 1000 },
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

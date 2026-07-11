@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 type UserRole = 'landlord' | 'tenant';
 
@@ -17,8 +17,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loginWithGoogle: (role: UserRole) => Promise<void>;
-  loginWithEmail: (email: string, password: string, role: UserRole) => Promise<void>;
-  signupWithEmail: (email: string, password: string, firstName: string, lastName: string, role: UserRole) => Promise<void>;
+  loginAsDemo: (role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
@@ -30,6 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const savedDemo = localStorage.getItem('tentrust_demo_user');
+    if (savedDemo) {
+      try {
+        const parsed = JSON.parse(savedDemo);
+        setUser(parsed);
+        setIsLoading(false);
+      } catch (e) {}
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -37,52 +45,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (userDoc.exists()) {
             setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
           } else {
-            // Document might simply be in the process of being created by Google login or Email signup
-            // We do nothing here, letting the auth functions handle setting the user state.
+            await signOut(auth);
+            setUser(null);
           }
         } catch (error) {
           console.error("Error fetching user data", error);
         }
       } else {
-        setUser(null);
+        if (!localStorage.getItem('tentrust_demo_user')) {
+          setUser(null);
+        }
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    // 30 minutes of inactivity
-    const INACTIVITY_LIMIT = 30 * 60 * 1000;
-
-    const resetTimeout = () => {
-      clearTimeout(timeoutId);
-      if (auth.currentUser) {
-        timeoutId = setTimeout(() => {
-          logout();
-          console.info('User logged out due to inactivity.');
-        }, INACTIVITY_LIMIT);
-      }
-    };
-
-    if (user) {
-      window.addEventListener('mousemove', resetTimeout);
-      window.addEventListener('keydown', resetTimeout);
-      window.addEventListener('click', resetTimeout);
-      window.addEventListener('scroll', resetTimeout);
-      resetTimeout();
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('mousemove', resetTimeout);
-      window.removeEventListener('keydown', resetTimeout);
-      window.removeEventListener('click', resetTimeout);
-      window.removeEventListener('scroll', resetTimeout);
-    };
-  }, [user]);
 
   const loginWithGoogle = async (role: UserRole) => {
     const provider = new GoogleAuthProvider();
@@ -108,8 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({ id: firebaseUser.uid, ...newUser } as User);
       } else {
         const existingData = docSnap.data();
-        await updateDoc(userRef, { role, updatedAt: Date.now() });
-        setUser({ id: firebaseUser.uid, ...existingData, role } as User);
+        setUser({ id: firebaseUser.uid, ...existingData } as User);
       }
     } catch (error) {
       console.error(error);
@@ -117,104 +94,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithEmail = async (email: string, password: string, role: UserRole) => {
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = result.user;
-      
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      const docSnap = await getDoc(userRef);
-
-      if (docSnap.exists()) {
-        await updateDoc(userRef, { role, updatedAt: Date.now() });
-        setUser({ id: firebaseUser.uid, ...docSnap.data(), role } as User);
-      } else {
-        // Document missing entirely after login. Create a fallback to rescue the account.
-        const nameParts = (firebaseUser.displayName || 'Unknown User').split(' ');
-        const fallbackUser = {
-          email: firebaseUser.email || '',
-          firstName: nameParts[0] || 'Unknown',
-          lastName: nameParts.slice(1).join(' ') || 'User',
-          role: 'tenant', // Default to tenant if completely lost
-          verified: firebaseUser.emailVerified || false,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        await setDoc(userRef, fallbackUser);
-        setUser({ id: firebaseUser.uid, ...fallbackUser } as User);
-      }
-    } catch (error) {
-       console.error("Login failed:", error);
-       throw error;
-    }
-  };
-
-  const signupWithEmail = async (email: string, password: string, firstName: string, lastName: string, role: UserRole) => {
-    let firebaseUser;
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      firebaseUser = result.user;
-      await sendEmailVerification(firebaseUser, {
-        url: window.location.origin + '/auth?mode=login',
-        handleCodeInApp: true
-      });
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
-        try {
-          const result = await signInWithEmailAndPassword(auth, email, password);
-          firebaseUser = result.user;
-          if (!firebaseUser.emailVerified) {
-            await sendEmailVerification(firebaseUser, {
-              url: window.location.origin + '/auth?mode=login',
-              handleCodeInApp: true
-            });
-          }
-          // Document repair happens below
-        } catch (loginError: any) {
-             throw new Error('Account exists but incorrect password. Please sign in instead.');
-        }
-      } else {
-        console.error("Signup failed:", error);
-        throw error;
-      }
-    }
+  const loginAsDemo = async (role: UserRole) => {
+    const demoId = role === 'landlord' ? 'demo-landlord-123' : 'demo-tenant-123';
+    const demoUser = {
+      email: role === 'landlord' ? 'landlord@tentrust.ng' : 'tenant@tentrust.ng',
+      firstName: role === 'landlord' ? 'Oluwaseun' : 'Chukwudi',
+      lastName: role === 'landlord' ? 'Adebayo' : 'Okafor',
+      role,
+      verified: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const userData = { id: demoId, ...demoUser } as User;
+    setUser(userData);
+    localStorage.setItem('tentrust_demo_user', JSON.stringify(userData));
 
     try {
-      const userRef = doc(db, 'users', firebaseUser.uid);
-      const docSnap = await getDoc(userRef);
-
-      if (docSnap.exists()) {
-        // Document already exists, log them in normally instead of repairing
-        await updateDoc(userRef, { role, updatedAt: Date.now() });
-        setUser({ id: firebaseUser.uid, ...docSnap.data(), role } as User);
-        return;
-      }
-
-      const newUser = {
-        email: firebaseUser.email || '',
-        firstName,
-        lastName,
-        role,
-        verified: firebaseUser.emailVerified || false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      
-      await setDoc(userRef, newUser);
-      setUser({ id: firebaseUser.uid, ...newUser } as User);
-    } catch (error) {
-       console.error("Database setup failed:", error);
-       throw error;
+      setDoc(doc(db, 'users', demoId), demoUser, { merge: true }).catch(() => {});
+    } catch (e) {
+      // ignore
     }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    localStorage.removeItem('tentrust_demo_user');
+    try {
+      await signOut(auth);
+    } catch (e) {}
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, loginWithGoogle, loginAsDemo, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

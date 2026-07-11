@@ -38,9 +38,6 @@ export default function Chat() {
         })
       });
       const data = await response.json();
-      if (!response.ok) {
-         throw new Error(data.error || 'Server error');
-      }
       if (data.reply) {
          setMessages(prev => {
             const newMsgs = [...prev];
@@ -48,13 +45,8 @@ export default function Chat() {
             return newMsgs;
          });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      setMessages(prev => {
-         const newMsgs = [...prev];
-         newMsgs[lastMsgIndex] = { role: 'ai', content: `${textToTranslate}\n\n*(Translation failed: ${error.message || 'Service unavailable'})*` };
-         return newMsgs;
-      });
     } finally {
       setIsLoading(false);
     }
@@ -75,18 +67,15 @@ export default function Chat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: userMessage, 
-          context: `We are TenTrust. A platform connecting verified tenants and landlords in Lagos, Nigeria. STRICT RULE: Only reply to real-estate and TenTrust related questions. Reject any other topics. Note: The user prefers language: ${language}. Please reply in ${language}.` 
+          context: `We are TenTrust. A platform connecting verified tenants and landlords in Lagos. Note: The user prefers language: ${language}. Please reply in ${language}.` 
         })
       });
       const data = await response.json();
-      if (!response.ok) {
-         throw new Error(data.error || 'Server error');
-      }
       if (data.reply) {
          setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
       }
-    } catch (error: any) {
-      setMessages(prev => [...prev, { role: 'ai', content: `Sorry, I encounter an error: ${error.message || 'Service unavailable'}. Please try again later.` }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I'm having trouble connecting right now." }]);
     } finally {
       setIsLoading(false);
     }
