@@ -11,21 +11,22 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState('English');
 
-  const changeLanguage = async (newLanguage: string) => {
-    if (newLanguage === language) return;
+  const changeLanguage = async (newLanguage: string, msgIndex?: number) => {
     setLanguage(newLanguage);
 
-    let lastMsgIndex = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'ai') {
-        lastMsgIndex = i;
-        break;
+    let targetIndex = msgIndex !== undefined ? msgIndex : -1;
+    if (targetIndex === -1) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'ai') {
+          targetIndex = i;
+          break;
+        }
       }
     }
     
-    if (lastMsgIndex === -1) return;
+    if (targetIndex === -1) return;
 
-    const textToTranslate = messages[lastMsgIndex].content;
+    const textToTranslate = messages[targetIndex].content;
     setIsLoading(true);
 
     try {
@@ -37,11 +38,23 @@ export default function Chat() {
           context: `You are an expert translator.` 
         })
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Invalid response from server: ${text.substring(0, 50)}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       if (data.reply) {
          setMessages(prev => {
             const newMsgs = [...prev];
-            newMsgs[lastMsgIndex] = { role: 'ai', content: data.reply };
+            newMsgs[targetIndex] = { role: 'ai', content: data.reply };
             return newMsgs;
          });
       }
@@ -70,12 +83,24 @@ export default function Chat() {
           context: `We are TenTrust. A platform connecting verified tenants and landlords in Lagos. Note: The user prefers language: ${language}. Please reply in ${language}.` 
         })
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Invalid response from server: ${text.substring(0, 50)}`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       if (data.reply) {
          setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I'm having trouble connecting right now." }]);
+    } catch (error: any) {
+      setMessages(prev => [...prev, { role: 'ai', content: `Sorry, I'm having trouble connecting right now. ${error.message || ''}` }]);
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +185,7 @@ export default function Chat() {
                        {languages.map(lang => (
                          <button 
                            key={lang}
-                           onClick={() => changeLanguage(lang)}
+                           onClick={() => changeLanguage(lang, i)}
                            className={`px-3 py-1 text-[10px] md:text-xs font-medium rounded-full border transition-colors ${language === lang ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                          >
                            {lang}

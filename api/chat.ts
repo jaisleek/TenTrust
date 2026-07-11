@@ -25,12 +25,13 @@ export default async function handler(req: any, res: any) {
     });
     
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: message,
       config: {
         systemInstruction: `You are an AI assistant for TenTrust, a real estate platform. 
         Use this context about properties and the platform to answer questions: ${context}.
-        Be helpful to both landlords and tenants. Keep answers concise.`,
+        Be helpful to both landlords and tenants. Keep answers concise.
+        IMPORTANT: Always reply in the exact language requested in the user context.`,
       }
     });
     res.status(200).json({ reply: response.text });
