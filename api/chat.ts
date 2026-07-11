@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
     });
     
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       contents: message,
       config: {
         systemInstruction: `You are an AI assistant for TenTrust, a real estate platform. 
