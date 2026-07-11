@@ -19,7 +19,7 @@ async function startServer() {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: `Act as a real estate pricing AI for Lagos, Nigeria. The user will provide property details. Give a realistic estimated rent range in NGN per year, a short 2-sentence market analysis, and a confidence score out of 100%. Return only a JSON object matching this structure: {"estimatedRange": "₦X,XXX,XXX - ₦Y,YYY,YYY", "analysis": "...", "confidence": 85}. Details: ${propertyDetails}`,
         config: {
           responseMimeType: "application/json",
@@ -41,12 +41,13 @@ async function startServer() {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         contents: message,
         config: {
           systemInstruction: `You are an AI assistant for TenTrust, a real estate platform. 
           Use this context about properties and the platform to answer questions: ${context}.
-          Be helpful to both landlords and tenants. Keep answers concise.`,
+          Be helpful to both landlords and tenants. Keep answers concise.
+          IMPORTANT: Always reply in the exact language requested in the user context.`,
         }
       });
       res.json({ reply: response.text });
