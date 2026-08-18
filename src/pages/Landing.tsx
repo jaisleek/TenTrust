@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ShieldCheck, ArrowRight, Play, Clock, Lock, Phone, Mail, MapPin, CheckCircle, Instagram, ChevronDown } from 'lucide-react';
+import { Shield, ShieldCheck, ArrowRight, Play, Clock, Lock, Phone, Mail, MapPin, CheckCircle, Instagram, ChevronDown, MessageSquare, Sparkles, Send } from 'lucide-react';
 import TenTrustVerifySection from '../components/TenTrustVerifySection';
 import ComingSoonSection from '../components/ComingSoonSection';
 import heroLaptop from '../assets/hero-laptop.jpg';
@@ -45,7 +45,16 @@ export default function Landing() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Check Tenant Button — desktop */}
+            <Link 
+              to="/auth?action=verify" 
+              className="hidden md:inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+            >
+              <MessageSquare className="w-4 h-4 fill-current" />
+              Check Tenant
+            </Link>
+
             {/* Sign In — desktop only */}
             <Link to="/auth" className="hidden md:inline-flex text-sm font-bold text-slate-800 hover:text-[#0747a6] px-5 py-2.5 rounded-full border border-slate-300 hover:border-[#0747a6] transition-all bg-white shadow-xs">
               Sign In
@@ -72,7 +81,15 @@ export default function Landing() {
         {/* Mobile nav drawer */}
         {navOpen && (
           <div className="md:hidden absolute top-20 inset-x-0 z-50 bg-white border-b border-slate-200 shadow-xl">
-            <div className="px-5 py-6 flex flex-col gap-1">
+            <div className="px-5 py-6 flex flex-col gap-2">
+              <Link
+                to="/auth?action=verify"
+                onClick={() => setNavOpen(false)}
+                className="py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] flex items-center gap-2 shadow-xs transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 fill-current" />
+                Check Tenant (Login &amp; Verify)
+              </Link>
               <a
                 href="#verify"
                 onClick={() => setNavOpen(false)}
@@ -102,7 +119,7 @@ export default function Landing() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 AI Assistant
               </Link>
-              <div className="mt-3 pt-4 border-t border-slate-100">
+              <div className="mt-2 pt-4 border-t border-slate-100">
                 <Link
                   to="/auth"
                   onClick={() => setNavOpen(false)}
@@ -131,14 +148,34 @@ export default function Landing() {
               TenTrust is the AI-native intelligence platform built for institutional property managers and real estate professionals.
             </p>
 
+            {/* WhatsApp Hero Banner Card */}
+            <div className="bg-gradient-to-r from-emerald-600 to-[#128C7E] rounded-2xl p-4 text-white shadow-lg space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold bg-white/20 px-2.5 py-1 rounded-full w-fit">
+                <Sparkles className="w-3.5 h-3.5" />
+                Need help checking a tenant?
+              </div>
+              <p className="text-xs text-emerald-50 leading-relaxed font-medium">
+                Chat directly with our TenTrust Support Concierge on WhatsApp! We help landlords set up automated tenant checks in minutes.
+              </p>
+              <a
+                href="https://api.whatsapp.com/send?phone=2348000000000&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-white text-emerald-800 hover:bg-emerald-50 w-full py-3 rounded-xl font-bold text-xs transition-all shadow-xs"
+              >
+                <MessageSquare className="w-4 h-4 fill-emerald-600 text-emerald-600" />
+                Chat with TenTrust Support on WhatsApp
+              </a>
+            </div>
+
             {/* Stacked full-width buttons */}
             <div className="flex flex-col gap-3">
-              <a
-                href="#verify"
+              <Link
+                to="/auth?action=verify"
                 className="flex items-center justify-center gap-2 bg-[#0747a6] hover:bg-[#053680] text-white w-full py-4 rounded-2xl font-bold text-base transition-all shadow-md shadow-[#0747a6]/20 active:scale-[0.98]"
               >
-                Get Started <ArrowRight className="w-4 h-4" />
-              </a>
+                Check Tenant Now <ArrowRight className="w-4 h-4" />
+              </Link>
               <a
                 href="#how-it-works"
                 className="flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 text-slate-800 w-full py-4 rounded-2xl font-bold text-base border border-slate-200 transition-all active:scale-[0.98]"
@@ -203,6 +240,35 @@ export default function Landing() {
               <p className="text-lg text-slate-600 font-normal leading-relaxed max-w-lg">
                 TenTrust is the AI-native intelligence platform built for institutional property managers and real estate professionals.
               </p>
+
+              {/* WhatsApp Hero Banner Card — Desktop */}
+              <div className="bg-gradient-to-r from-emerald-600 via-[#128C7E] to-[#075E54] rounded-2xl p-5 text-white shadow-xl max-w-lg relative overflow-hidden group">
+                <div className="absolute right-3 -bottom-4 opacity-15 pointer-events-none group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-32 h-32 fill-current text-white" />
+                </div>
+                <div className="space-y-3 relative z-10">
+                  <div className="flex items-center gap-2 text-xs font-bold bg-white/20 px-3 py-1 rounded-full w-fit backdrop-blur-md">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Need help checking a tenant?
+                  </div>
+                  <p className="text-xs sm:text-sm text-emerald-50 leading-relaxed font-medium">
+                    Connect directly with our TenTrust Concierge on WhatsApp! We assist landlords with full screening, document verification, and tenant links.
+                  </p>
+                  <div className="pt-1 flex items-center gap-3">
+                    <a
+                      href="https://api.whatsapp.com/send?phone=2348000000000&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-white text-emerald-900 hover:bg-emerald-50 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.98]"
+                    >
+                      <MessageSquare className="w-4 h-4 fill-emerald-600 text-emerald-600" />
+                      Chat with TenTrust Support on WhatsApp
+                      <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <a href="#verify" className="inline-flex items-center gap-2.5 bg-[#0747a6] hover:bg-[#053680] text-white px-7 py-3.5 rounded-xl font-bold text-base transition-all shadow-md shadow-[#0747a6]/20 active:scale-[0.98]">
                   Get Started <ArrowRight className="w-4 h-4" />

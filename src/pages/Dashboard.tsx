@@ -38,6 +38,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check URL query parameters for active tab
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'verify' || tabParam === 'verify-tenant') {
+      setActiveTab('verify-tenant');
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
@@ -335,6 +344,26 @@ export default function Dashboard() {
             {/* VERIFY TENANT TAB */}
             {activeTab === 'verify-tenant' && (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-6 md:p-10">
+                
+                {/* TenTrust WhatsApp Concierge Banner */}
+                <div className="mb-8 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold uppercase">
+                      💬 TenTrust Landlord Concierge
+                    </div>
+                    <h3 className="text-lg font-heading font-bold">Need us to handle the tenant check for you?</h3>
+                    <p className="text-emerald-100 text-xs sm:text-sm">Chat directly with our verification team on WhatsApp and we will assist you step-by-step.</p>
+                  </div>
+                  <a
+                    href="https://api.whatsapp.com/send?phone=2348000000000&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20verifying%20a%20tenant."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white hover:bg-emerald-50 text-emerald-800 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all shrink-0 flex items-center gap-2 active:scale-95"
+                  >
+                    Chat on WhatsApp
+                  </a>
+                </div>
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
                   <div>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase mb-2">
