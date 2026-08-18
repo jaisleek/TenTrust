@@ -1,15 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
 const env = (import.meta as any).env || {};
-const supabaseUrl = env.VITE_SUPABASE_URL || 'https://elsvzazxshrqzwtuappy.supabase.co';
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder';
+const rawUrl: string | undefined = env.VITE_SUPABASE_URL;
+const rawAnonKey: string | undefined = env.VITE_SUPABASE_ANON_KEY;
 
-export const isSupabaseConfigured = () => {
+const isValidUrl = (url?: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const supabaseUrl = isValidUrl(rawUrl) ? rawUrl!.trim() : 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = rawAnonKey && typeof rawAnonKey === 'string' && rawAnonKey.trim().length > 0 
+  ? rawAnonKey.trim() 
+  : 'placeholder-anon-key';
+
+export const isSupabaseConfigured = (): boolean => {
   return (
-    supabaseUrl &&
-    !supabaseUrl.includes('placeholder') &&
-    supabaseAnonKey &&
-    !supabaseAnonKey.includes('placeholder')
+    isValidUrl(rawUrl) &&
+    !rawUrl!.includes('placeholder') &&
+    Boolean(rawAnonKey && rawAnonKey.trim().length > 0 && !rawAnonKey.includes('placeholder'))
   );
 };
 
@@ -20,3 +34,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
