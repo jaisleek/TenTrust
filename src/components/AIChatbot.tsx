@@ -12,7 +12,7 @@ export default function AIChatbot() {
   return (
     <Link 
       to="/chat"
-      className="fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-2xl transition-all z-50 hover:scale-105 block"
+      className="fixed bottom-24 lg:bottom-6 right-6 w-16 h-16 rounded-full shadow-2xl transition-all z-50 hover:scale-105 block"
     >
       <div className="relative w-full h-full group">
         <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity bg-white text-slate-900 text-sm font-bold px-3 py-2 rounded-lg shadow-lg border border-slate-100 pointer-events-none z-10">

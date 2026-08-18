@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Shield, ShieldCheck, ArrowRight, Play, Clock, Lock, Phone, Mail, MapPin, CheckCircle, Instagram, ChevronDown, MessageSquare, Sparkles, Send } from 'lucide-react';
 import TenTrustVerifySection from '../components/TenTrustVerifySection';
 import ComingSoonSection from '../components/ComingSoonSection';
-import heroLaptop from '../assets/hero-laptop.jpg';
-import mobileImg from '../assets/mobile.jpeg';
+import heroLaptop from '../assets/tentrust.png';
+import mobileImg from '../assets/tentrust.png';
 
 export default function Landing() {
   const [navOpen, setNavOpen] = useState(false);
@@ -158,7 +158,7 @@ export default function Landing() {
                 Chat directly with our TenTrust Support Concierge on WhatsApp! We help landlords set up automated tenant checks in minutes.
               </p>
               <a
-                href="https://api.whatsapp.com/send?phone=2348000000000&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
+                href="https://api.whatsapp.com/send?phone=2349058283054&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-white text-emerald-800 hover:bg-emerald-50 w-full py-3 rounded-xl font-bold text-xs transition-all shadow-xs"
@@ -256,7 +256,7 @@ export default function Landing() {
                   </p>
                   <div className="pt-1 flex items-center gap-3">
                     <a
-                      href="https://api.whatsapp.com/send?phone=2348000000000&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
+                      href="https://api.whatsapp.com/send?phone=2349058283054&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20checking%20my%20tenant."
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 bg-white text-emerald-900 hover:bg-emerald-50 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.98]"

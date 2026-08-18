@@ -440,7 +440,7 @@ export default function CheckTenant() {
             </div>
 
             {/* Quick Benefits Card */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/60 rounded-3xl p-6 border border-blue-100 space-y-3">
+            <div className="bg-blue-50/60 rounded-3xl p-6 border border-blue-100/80 space-y-3">
               <h3 className="text-sm font-bold text-[#0c2340] flex items-center gap-2">
                 <FileCheck className="w-4 h-4 text-[#0747a6]" />
                 Why Landlords Prefer WhatsApp Checks
