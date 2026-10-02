@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Building, User, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, Sparkles, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Building, User, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, Sparkles, AlertCircle } from '../lib/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 

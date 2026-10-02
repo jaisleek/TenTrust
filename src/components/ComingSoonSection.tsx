@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Home, FileSpreadsheet, Landmark, Clock } from 'lucide-react';
+import { Building2, CreditCard, Home, FileSpreadsheet, Landmark, Clock } from '../lib/icons';
 
 const upcomingFeatures = [
   {

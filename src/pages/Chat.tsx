@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageSquare, Plus, Globe, ShieldCheck, Send, Trash2, Mic, ArrowLeft, Home } from 'lucide-react';
+import { MessageSquare, Plus, Globe, ShieldCheck, Send, Trash2, Mic, ArrowLeft, Home } from '../lib/icons';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 

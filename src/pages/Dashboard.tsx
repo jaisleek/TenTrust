@@ -1,19 +1,11 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { ShieldCheck, LayoutDashboard, Building, Users, Wallet, Bell, Search, Plus, MapPin, MoreVertical, CheckCircle2, Clock, TrendingUp, UploadCloud, FileText, Camera, Link as LinkIcon, Copy, Share2, Award, UserCheck, LogOut, User, Settings, HelpCircle, MessageSquare, Sparkles } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Building, Users, Wallet, Bell, Search, Plus, MapPin, MoreVertical, CheckCircle2, Clock, TrendingUp, UploadCloud, FileText, Camera, Link as LinkIcon, Copy, Share2, Award, UserCheck, LogOut, User, Settings, HelpCircle, MessageSquare, Sparkles } from '../lib/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart, Bar, Legend, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mockApplications, mockFinancials } from '../data';
 import { useAuth } from '../context/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, where } from 'firebase/firestore';
 import OnboardingModal from '../components/OnboardingModal';
-
-const packages = [
-  { id: 'basic', name: 'Basic', price: 3000, description: 'BVN + ID Check' },
-  { id: 'standard', name: 'Standard', price: 7000, description: 'BVN + Bank Statement Analysis + Credit Check' },
-  { id: 'premium', name: 'Premium', price: 12000, description: 'Full Report + Employment + Reference + Credit Check' },
-  { id: 'founding', name: 'Founding Member', price: 25000, description: '3 Premium Verifications bundle' }
-];
+import DashboardVerifyTenant from '../components/DashboardVerifyTenant';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -23,19 +15,6 @@ export default function Dashboard() {
   const [estimationResult, setEstimationResult] = useState<any>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  
-  // Verify Tenant state
-  const [verificationMode, setVerificationMode] = useState<'direct' | 'link'>('direct');
-  const [selectedPackage, setSelectedPackage] = useState(packages[1]);
-  const [tenantName, setTenantName] = useState('');
-  const [tenantPhone, setTenantPhone] = useState('');
-  const [tenantBvn, setTenantBvn] = useState('');
-  const [tenantIncome, setTenantIncome] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [generatedReport, setGeneratedReport] = useState<any>(null);
-  const [generatedLink, setGeneratedLink] = useState('');
-  const [copiedLink, setCopiedLink] = useState(false);
-
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -107,7 +86,6 @@ export default function Dashboard() {
         rentAmount,
         currency: 'NGN',
         status: 'Vacant',
-        coverImage: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=600',
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
@@ -119,86 +97,6 @@ export default function Dashboard() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleRunVerification = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!tenantName || !tenantBvn) {
-      alert('Please provide tenant name and BVN/NIN.');
-      return;
-    }
-
-    setIsVerifying(true);
-    setTimeout(async () => {
-      const score = Math.floor(Math.random() * 52) + 45; // 45 to 96
-      let rating = '';
-      let recommendation = '';
-      if (score >= 75) {
-        rating = 'EXCELLENT';
-        recommendation = 'Strongly Recommended';
-      } else if (score >= 60) {
-        rating = 'GOOD';
-        recommendation = 'Recommended';
-      } else if (score >= 45) {
-        rating = 'FAIR';
-        recommendation = 'Proceed with Caution';
-      } else if (score >= 30) {
-        rating = 'POOR';
-        recommendation = 'Not Recommended';
-      } else {
-        rating = 'HIGH RISK';
-        recommendation = 'Do Not Proceed';
-      }
-
-      const reportData = {
-        tenantName,
-        tenantPhone,
-        tenantBvn,
-        tenantIncome: tenantIncome || '450,000',
-        score,
-        rating,
-        recommendation,
-        packageName: selectedPackage.name,
-        pricePaid: selectedPackage.price,
-        verifiedAt: new Date().toLocaleDateString()
-      };
-
-      try {
-        if (user) {
-          await addDoc(collection(db, 'applications'), {
-            landlordId: user.id,
-            name: tenantName,
-            propertyTitle: properties[0]?.title || 'General Property Verification',
-            trustScore: score * 10,
-            dateApplied: new Date().toISOString().split('T')[0],
-            kycData: {
-              bvnnin: tenantBvn,
-              monthlyIncome: tenantIncome || '450000',
-              employmentStatus: 'Employed',
-              employerName: 'Verified Corporate',
-              guarantorName: 'Assigned Guarantor'
-            },
-            createdAt: Date.now()
-          });
-        }
-      } catch (err) {
-        console.error(err);
-      }
-
-      setGeneratedReport(reportData);
-      setIsVerifying(false);
-    }, 1500);
-  };
-
-  const handleGenerateLink = (e: FormEvent) => {
-    e.preventDefault();
-    if (!tenantName) {
-      alert('Please enter tenant name for the invite.');
-      return;
-    }
-    const token = Math.random().toString(36).substring(2, 10);
-    const link = `${window.location.origin}/apply/verify-${token}?pkg=${selectedPackage.id}&name=${encodeURIComponent(tenantName)}`;
-    setGeneratedLink(link);
   };
 
   const handleEstimateRent = async (e: FormEvent<HTMLFormElement>) => {
@@ -234,16 +132,12 @@ export default function Dashboard() {
           </Link>
         </div>
         <div className="p-4 space-y-1 flex-1">
-          <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 mt-2">Landlord Menu</p>
+          <p className="font-label px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 mt-2">Landlord Menu</p>
           {[
             { id: 'overview', label: 'My Dashboard', icon: LayoutDashboard },
-            { id: 'properties', label: 'My Properties', icon: Building },
             { id: 'verify-tenant', label: 'Verify Tenant', icon: ShieldCheck },
             { id: 'how-to-verify', label: 'How to Verify', icon: FileText },
-            { id: 'add-property', label: 'List Property', icon: Plus },
             { id: 'applications', label: 'Review Tenants', icon: Users },
-            { id: 'reminders', label: 'Automated Reminders', icon: Bell },
-            { id: 'estimator', label: 'AI Rent Estimator', icon: TrendingUp },
           ].map((item) => (
             <button
               key={item.id}
@@ -275,7 +169,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-900">{user ? `${user.firstName} ${user.lastName}` : 'Landlord'}</p>
-              <p className="text-xs text-slate-500">Verified Landlord</p>
+              <p className="text-xs text-slate-500">{user?.verified ? 'Email confirmed' : 'Email not confirmed'}</p>
             </div>
           </div>
           <button 
@@ -330,39 +224,39 @@ export default function Dashboard() {
                     <ShieldCheck className="w-4 h-4 text-brand-600" /> Landlord Guide
                   </div>
                   <h2 className="text-3xl font-heading font-extrabold text-slate-900">How Tenant Verification Works</h2>
-                  <p className="text-slate-600 mt-2">TenTrust provides institutional-grade tenant screening powered by Casiec financial APIs. Follow this step-by-step guide to verify prospective tenants securely and eliminate tenancy defaults.</p>
+                  <p className="text-slate-600 mt-2">Choose a screening package, collect tenant information with consent, and review an advisory report when the included checks finish.</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center text-lg">1</div>
                     <h3 className="font-heading font-bold text-lg text-slate-900">Select Verification Package</h3>
-                    <p className="text-sm text-slate-600">Choose between Basic (BVN & ID check), Standard (Bank statement & credit score), or Premium (Full employment & past landlord reference check).</p>
+                    <p className="text-sm text-slate-600">Choose an available package. Its live price and included checks are supplied by the screening service.</p>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center text-lg">2</div>
-                    <h3 className="font-heading font-bold text-lg text-slate-900">Direct Entry or 48-Day Link</h3>
-                    <p className="text-sm text-slate-600">You can either enter tenant details directly in the <strong>Verify Tenant</strong> tab or generate a secure temporary link for the tenant to complete. Note: All tenant links and requests automatically expire after <strong>48 days</strong> for enhanced security and compliance.</p>
+                    <h3 className="font-heading font-bold text-lg text-slate-900">Enter details or send a link</h3>
+                    <p className="text-sm text-slate-600">Enter information yourself after confirming consent, or pay first and send the tenant a private link to provide information and consent.</p>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center text-lg">3</div>
-                    <h3 className="font-heading font-bold text-lg text-slate-900">Automated Casiec Screening</h3>
-                    <p className="text-sm text-slate-600">Our engine verifies the tenant's NIN/BVN, analyzes income stability, checks previous eviction records, and calculates their composite TenTrust Score.</p>
+                    <h3 className="font-heading font-bold text-lg text-slate-900">Rules-based advisory score</h3>
+                    <p className="text-sm text-slate-600">The score uses rent affordability, documented rental-payment history, and evidence completeness. Identity check status is reported separately.</p>
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center text-lg">4</div>
-                    <h3 className="font-heading font-bold text-lg text-slate-900">Tenant Self-Verification</h3>
-                    <p className="text-sm text-slate-600">Tenants can also initiate verification from their own dashboard, generating a verified badge and secure confirmation link to share directly with you via email or chat.</p>
+                    <h3 className="font-heading font-bold text-lg text-slate-900">Review the report</h3>
+                    <p className="text-sm text-slate-600">The result shows the score breakdown, evidence confidence, input sources, and the status of each paid check. It does not make an automatic rental decision.</p>
                   </div>
                 </div>
 
-                <div className="bg-brand-900 text-white rounded-2xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="brand-banner-art text-white rounded-2xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div>
                     <h3 className="text-xl font-heading font-bold mb-1">Ready to screen your next tenant?</h3>
-                    <p className="text-brand-100 text-sm">Run instant checks with 99.8% default prediction accuracy.</p>
+                    <p className="text-brand-100 text-sm">Package availability depends on the payment and verification services configured for this environment.</p>
                   </div>
                   <button 
                     onClick={() => setActiveTab('verify-tenant')}
@@ -376,256 +270,16 @@ export default function Dashboard() {
 
             {/* VERIFY TENANT TAB */}
             {activeTab === 'verify-tenant' && (
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-6 md:p-10">
-                
-                {/* TenTrust WhatsApp Concierge Banner */}
-                <div className="mb-8 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="space-y-1 text-center sm:text-left">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold uppercase">
-                      💬 TenTrust Landlord Concierge
-                    </div>
-                    <h3 className="text-lg font-heading font-bold">Need us to handle the tenant check for you?</h3>
-                    <p className="text-emerald-100 text-xs sm:text-sm">Chat directly with our verification team on WhatsApp and we will assist you step-by-step.</p>
-                  </div>
-                  <a
-                    href="https://api.whatsapp.com/send?phone=2349058283054&text=Hello%20TenTrust%20Support,%20I%20am%20a%20landlord%20and%20I%20need%20help%20verifying%20a%20tenant."
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-white hover:bg-emerald-50 text-emerald-800 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all shrink-0 flex items-center gap-2 active:scale-95"
-                  >
-                    Chat on WhatsApp
-                  </a>
-                </div>
-
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold uppercase mb-2">
-                      <ShieldCheck className="w-4 h-4 text-brand-600" /> TenTrust Official Verification
-                    </div>
-                    <h2 className="text-3xl font-heading font-extrabold text-slate-900">Verify a Prospective Tenant</h2>
-                    <p className="text-slate-600 mt-1">Choose whether to fill in their details directly or generate a secure temporary link for them to fill.</p>
-                  </div>
-
-                  <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-                    <button
-                      onClick={() => setVerificationMode('direct')}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${verificationMode === 'direct' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                      Fill Details Directly
-                    </button>
-                    <button
-                      onClick={() => setVerificationMode('link')}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${verificationMode === 'link' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                      Generate Temp Link
-                    </button>
-                  </div>
-                </div>
-
-                {/* Package Selection */}
-                <div className="mb-8">
-                  <label className="block text-sm font-bold text-slate-800 mb-3">1. Select Verification Package</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {packages.map(pkg => (
-                      <div
-                        key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg)}
-                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col justify-between ${selectedPackage.id === pkg.id ? 'border-brand-600 bg-brand-50/50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-                      >
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-heading font-bold text-slate-900 text-base">{pkg.name}</span>
-                            <span className="font-black text-brand-700 font-heading">₦{pkg.price.toLocaleString()}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 mb-3">{pkg.description}</p>
-                        </div>
-                        <span className={`text-xs font-bold py-1 px-2.5 rounded-lg text-center ${selectedPackage.id === pkg.id ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                          {selectedPackage.id === pkg.id ? 'Selected' : 'Select'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {verificationMode === 'direct' ? (
-                  <form onSubmit={handleRunVerification} className="space-y-6 pt-4 border-t border-slate-100">
-                    <h3 className="text-xl font-heading font-bold text-slate-900 flex items-center gap-2">
-                      <UserCheck className="w-5 h-5 text-brand-600" /> 2. Enter Tenant Information
-                    </h3>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">Tenant Full Name *</label>
-                        <input 
-                          type="text" 
-                          required 
-                          value={tenantName}
-                          onChange={(e) => setTenantName(e.target.value)}
-                          placeholder="e.g. Chukwudi Okafor" 
-                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-600 text-base font-medium"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">BVN or NIN *</label>
-                        <input 
-                          type="text" 
-                          required 
-                          maxLength={11}
-                          value={tenantBvn}
-                          onChange={(e) => setTenantBvn(e.target.value)}
-                          placeholder="11-digit BVN or NIN" 
-                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-600 text-base font-mono"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">Phone Number</label>
-                        <input 
-                          type="tel" 
-                          value={tenantPhone}
-                          onChange={(e) => setTenantPhone(e.target.value)}
-                          placeholder="08000000000" 
-                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-600 text-base"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">Estimated Monthly Income (₦)</label>
-                        <input 
-                          type="number" 
-                          value={tenantIncome}
-                          onChange={(e) => setTenantIncome(e.target.value)}
-                          placeholder="e.g. 500000" 
-                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-600 text-base"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-4">
-                      <button 
-                        type="submit" 
-                        disabled={isVerifying}
-                        className="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-lg rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 cursor-pointer"
-                      >
-                        {isVerifying ? (
-                          <>
-                            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            Running Secure BVN & Credit Analysis...
-                          </>
-                        ) : (
-                          <>
-                            Run Verification & Generate Report (₦{selectedPackage.price.toLocaleString()})
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {generatedReport && (
-                      <div className="mt-8 bg-emerald-50 border-2 border-emerald-500 rounded-3xl p-8 relative animate-fade-in">
-                        <div className="absolute top-4 right-4 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase">
-                          Verified Report Generated
-                        </div>
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="w-16 h-16 rounded-2xl bg-emerald-600 text-white font-heading font-black text-2xl flex items-center justify-center shadow-md">
-                            {generatedReport.score}
-                          </div>
-                          <div>
-                            <h4 className="text-2xl font-heading font-bold text-slate-900">{generatedReport.tenantName}</h4>
-                            <p className="text-sm text-slate-600">BVN: {generatedReport.tenantBvn.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')} | Package: {generatedReport.packageName}</p>
-                          </div>
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl border border-emerald-200 mb-6 flex justify-between items-center">
-                          <div>
-                            <span className="text-xs font-bold text-slate-500 uppercase">TenTrust Rating</span>
-                            <p className="text-xl font-black text-emerald-800 font-heading">{generatedReport.rating}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-slate-500 uppercase">Recommendation</span>
-                            <p className="text-sm font-bold text-slate-900">{generatedReport.recommendation}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-4">
-                          <button onClick={() => window.print()} className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all">
-                            Download PDF Report
-                          </button>
-                          <button onClick={() => setGeneratedReport(null)} className="px-6 py-3 bg-white hover:bg-slate-100 text-slate-800 font-bold rounded-xl border border-slate-300">
-                            Verify Another
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </form>
-                ) : (
-                  <form onSubmit={handleGenerateLink} className="space-y-6 pt-4 border-t border-slate-100">
-                    <h3 className="text-xl font-heading font-bold text-slate-900 flex items-center gap-2">
-                      <LinkIcon className="w-5 h-5 text-brand-600" /> 2. Generate Temporary Link for Tenant
-                    </h3>
-                    <p className="text-slate-600 text-sm">
-                      Send a secure link to your prospective tenant. They will securely input their BVN and details themselves without exposing sensitive info to you directly.
-                    </p>
-
-                    <div className="space-y-2 max-w-xl">
-                      <label className="text-sm font-bold text-slate-700">Tenant Full Name (Optional)</label>
-                      <input 
-                        type="text" 
-                        value={tenantName}
-                        onChange={(e) => setTenantName(e.target.value)}
-                        placeholder="e.g. Folashade Adebayo" 
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-600 text-base"
-                      />
-                    </div>
-
-                    <button 
-                      type="submit"
-                      className="py-4 px-8 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-lg rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 cursor-pointer"
-                    >
-                      <LinkIcon className="w-5 h-5" /> Generate Secure Verification Link
-                    </button>
-
-                    {generatedLink && (
-                      <div className="mt-8 bg-brand-50 border-2 border-brand-500 rounded-3xl p-6 sm:p-8 animate-fade-in">
-                        <h4 className="font-heading font-bold text-lg text-slate-900 mb-2">Temporary Secure Link Generated</h4>
-                        <p className="text-sm text-slate-600 mb-4">Send this link to the tenant via WhatsApp, SMS, or email. Link expires in 48 hours.</p>
-                        
-                        <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-brand-200 mb-6">
-                          <input 
-                            type="text" 
-                            readOnly 
-                            value={generatedLink} 
-                            className="w-full bg-transparent px-2 text-sm text-slate-800 font-mono outline-none"
-                          />
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(generatedLink);
-                              setCopiedLink(true);
-                              setTimeout(() => setCopiedLink(false), 3000);
-                            }}
-                            className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 flex items-center gap-1.5 transition-all"
-                          >
-                            <Copy className="w-4 h-4" /> {copiedLink ? 'Copied!' : 'Copy Link'}
-                          </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-4">
-                          <a 
-                            href={`https://wa.me/?text=${encodeURIComponent(`Hello ${tenantName || 'Tenant'}, please complete your TenTrust verification for our rental agreement using this secure link: ${generatedLink}`)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-sm"
-                          >
-                            <Share2 className="w-4 h-4" /> Share via WhatsApp
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </form>
-                )}
-              </div>
+              <DashboardVerifyTenant
+                properties={properties}
+                onNavigateToReview={() => setActiveTab('applications')}
+              />
             )}
 
             {/* ADD PROPERTY TAB */}
             {activeTab === 'add-property' && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-8 border-b border-slate-100 bg-brand-900 text-white relative overflow-hidden">
+                <div className="brand-banner-art p-6 md:p-8 border-b border-white/10 text-white relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-brand-800 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                   <div className="relative z-10">
                     <h2 className="text-2xl font-heading font-bold mb-2">List a New Property</h2>
@@ -740,55 +394,50 @@ export default function Dashboard() {
                    </div>
                    <div>
                      <h4 className="font-bold text-slate-900 text-lg">Peace of Mind for your Rentals</h4>
-                     <p className="text-slate-600 mt-1">Review tenant applications easily. Focus on their <strong>Trust Score</strong>. Casiec Financials ensures you get guaranteed payments for verified tenants.</p>
+                     <p className="text-slate-600 mt-1">Review saved listings and applications. Tenant readiness scores are advisory and appear after a paid screening is completed.</p>
                    </div>
                 </div>
                 
                 {/* KPI Cards */}
                 {(activeTab === 'overview' || activeTab === 'properties') && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p className="text-sm font-medium text-slate-500 mb-1">Total Portfolio Value (Yr)</p>
-                          <h3 className="text-2xl font-bold font-heading text-slate-900">₦24,700,000</h3>
-                        </div>
-                        <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
-                          <TrendingUp className="w-5 h-5" />
-                        </div>
-                      </div>
-                      <p className="text-xs font-medium text-emerald-600 flex items-center gap-1">
-                        100% Guaranteed via Casiec Financials
-                      </p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-sm font-medium text-slate-500 mb-1">Active Properties</p>
-                          <h3 className="text-2xl font-bold font-heading text-slate-900">{properties.length} <span className="text-lg text-slate-400 font-normal">Units</span></h3>
+                          <p className="text-sm font-medium text-slate-500 mb-1">Saved properties</p>
+                          <h3 className="text-2xl font-bold font-heading text-slate-900">{properties.length}</h3>
                         </div>
                         <div className="bg-brand-50 p-2 rounded-lg text-brand-600">
                           <Building className="w-5 h-5" />
                         </div>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 mt-4">
-                        <div className="bg-brand-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2">85% Occupancy Rate</p>
+                      <p className="text-xs text-slate-500">Listings saved to your account</p>
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p className="text-sm font-medium text-slate-500 mb-1">Safe Tenants (Identity Verified)</p>
-                          <h3 className="text-2xl font-bold font-heading text-slate-900 text-emerald-600">100%</h3>
+                          <p className="text-sm font-medium text-slate-500 mb-1">Saved applications</p>
+                          <h3 className="text-2xl font-bold font-heading text-slate-900">{applications.length}</h3>
+                        </div>
+                        <div className="bg-slate-100 p-2 rounded-lg text-slate-700">
+                          <Users className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">Applications saved to your account; this is not a screening count</p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 mb-1">Tenant screening</p>
+                          <h3 className="text-2xl font-bold font-heading text-slate-900">Advisory</h3>
                         </div>
                         <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
                           <CheckCircle2 className="w-5 h-5" />
                         </div>
                       </div>
-                      <p className="text-xs text-slate-500 tracking-wide font-medium">All tenant backgrounds are checked.</p>
+                      <p className="text-xs text-slate-500 tracking-wide font-medium">Run a paid screening to see its score and check status.</p>
                     </div>
                   </div>
                 )}
@@ -798,26 +447,10 @@ export default function Dashboard() {
                   {activeTab === 'overview' && (
                     <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                       <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-heading font-bold text-slate-900">Money In vs Expected (Millions ₦)</h3>
-                        <select className="bg-slate-50 border border-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none">
-                          <option>Last 6 Months</option>
-                        </select>
+                        <h3 className="text-lg font-heading font-bold text-slate-900">Rent payment activity</h3>
                       </div>
-                      <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={mockFinancials} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
-                            <Tooltip 
-                              contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                              formatter={(value, name) => [`₦${value}M`, name === 'paid' ? 'Money Received' : 'Money Expected']}
-                            />
-                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            <Bar dataKey="expected" fill="#94a3b8" name="Money Expected" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            <Bar dataKey="paid" fill="#10b981" name="Money Received" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <div className="flex min-h-56 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                        <p className="max-w-md text-sm leading-6 text-slate-500">Rent payments are not connected to this account yet, so no payment totals or trends are shown.</p>
                       </div>
                     </div>
                   )}
@@ -834,7 +467,7 @@ export default function Dashboard() {
                           return (
                           <div key={app.id} className="p-5 hover:bg-slate-50 transition-colors flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500">
-                              {app.kycData?.bvnnin ? 'V' : '?'}
+                              ?
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-1">
@@ -842,8 +475,8 @@ export default function Dashboard() {
                                   <h4 className="text-sm font-bold text-slate-900 truncate">{app.name || 'Tenant Application'}</h4>
                                   <p className="text-xs text-slate-500 truncate">Income: ₦{Number(app.kycData?.monthlyIncome || 0).toLocaleString()} | {app.kycData?.employmentStatus}</p>
                                 </div>
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 ${app.trustScore > 600 ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
-                                  {app.trustScore > 600 ? 'Safe Tenant' : 'Risky Tenant'}
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                  Screening required
                                 </span>
                               </div>
                               
@@ -859,15 +492,9 @@ export default function Dashboard() {
                               </div>
 
                               <div className="flex items-center gap-2 mt-1">
-                                {app.kycData?.bvnnin ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Government ID Checked
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                                    <Clock className="w-3 h-3 text-amber-600" /> ID Missing
-                                  </span>
-                                )}
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                                  <Clock className="w-3 h-3 text-amber-600" /> No screening report
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -899,7 +526,7 @@ export default function Dashboard() {
                           {properties.map((property) => (
                             <tr key={property.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="py-4 px-6 flex items-center gap-4">
-                                <img src={property.coverImage} alt={property.title} className="w-16 h-12 rounded-lg object-cover bg-slate-200" />
+                                {property.coverImage ? <img src={property.coverImage} alt={property.title} className="w-16 h-12 rounded-lg object-cover bg-slate-200" /> : <div className="flex h-12 w-16 items-center justify-center rounded-lg bg-slate-100 text-slate-400"><Building className="h-5 w-5" /></div>}
                                 <div>
                                   <p className="font-semibold text-slate-900 text-sm">{property.title}</p>
                                   <p className="text-xs text-slate-500">{property.type}</p>
@@ -1085,14 +712,14 @@ export default function Dashboard() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2.5">
                           <h2 className="text-xl sm:text-2xl font-heading font-black text-slate-900">
-                            {user ? `${user.firstName} ${user.lastName}` : 'Landlord User'}
+                            {user ? `${user.firstName} ${user.lastName}` : 'Account'}
                           </h2>
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-0.5 rounded-full text-xs font-bold">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                          <span className={`inline-flex items-center gap-1 border px-2.5 py-0.5 rounded-full text-xs font-bold ${user?.verified ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-amber-50 text-amber-800 border-amber-200/80'}`}>
+                            {user?.verified ? <><CheckCircle2 className="w-3.5 h-3.5" /> Email confirmed</> : 'Email not confirmed'}
                           </span>
                         </div>
                         <p className="text-sm text-slate-500 font-normal">
-                          {user?.email || 'landlord@tentrust.ng'}
+                          {user?.email || 'No email available'}
                         </p>
                       </div>
                     </div>
@@ -1111,7 +738,7 @@ export default function Dashboard() {
                   <div className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-1.5 shadow-xs">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Account Role</p>
                     <p className="text-base sm:text-lg font-bold text-slate-900">Landlord</p>
-                    <p className="text-xs text-slate-500">Institutional Access</p>
+                    <p className="text-xs text-slate-500">Account profile</p>
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-1.5 shadow-xs">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Properties</p>
@@ -1120,13 +747,13 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-1.5 shadow-xs">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Screenings</p>
-                    <p className="text-base sm:text-lg font-bold text-slate-900">{applications.length} Completed</p>
-                    <p className="text-xs text-slate-500">Tenant checks</p>
+                    <p className="text-base sm:text-lg font-bold text-slate-900">{applications.length} Saved</p>
+                    <p className="text-xs text-slate-500">Applications, not screening reports</p>
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-1.5 shadow-xs">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Security</p>
-                    <p className="text-base sm:text-lg font-bold text-emerald-600">NDPR Active</p>
-                    <p className="text-xs text-slate-500">Encrypted KYC</p>
+                    <p className="text-base sm:text-lg font-bold text-slate-900">Screening consent</p>
+                    <p className="text-xs text-slate-500">Collected before screening starts</p>
                   </div>
                 </div>
 
@@ -1163,7 +790,7 @@ export default function Dashboard() {
                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 group-hover:scale-105 transition-transform"><TrendingUp className="w-5 h-5" /></div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-slate-900">AI Rent Estimator</p>
-                        <p className="text-xs text-slate-500">Get a market-calibrated rent estimate</p>
+                        <p className="text-xs text-slate-500">Generate an AI estimate from the details you enter</p>
                       </div>
                     </button>
                   </div>
@@ -1175,18 +802,10 @@ export default function Dashboard() {
                     <h3 className="font-heading font-bold text-slate-900 text-sm sm:text-base">Support &amp; Resources</h3>
                   </div>
                   <div className="divide-y divide-slate-100">
-                    <a
-                      href="https://api.whatsapp.com/send?phone=2349058283054&text=Hello%20TenTrust%20Support,%20I%20need%20help%20with%20my%20account."
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-105 transition-transform"><MessageSquare className="w-5 h-5" /></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-slate-900">Chat on WhatsApp (09058283054)</p>
-                        <p className="text-xs text-slate-500">Talk directly with TenTrust landlord support</p>
-                      </div>
-                    </a>
+                    <div className="flex items-center gap-4 px-5 py-4 text-sm text-slate-500">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><MessageSquare className="h-5 w-5" /></div>
+                      Support contact details have not been configured yet.
+                    </div>
                     <button
                       onClick={() => setIsOnboardingOpen(true)}
                       className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors text-left group"
