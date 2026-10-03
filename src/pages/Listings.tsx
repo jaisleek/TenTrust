@@ -1,4 +1,4 @@
-import { ShieldCheck, MapPin, Search, Filter, Plus } from 'lucide-react';
+import { ShieldCheck, MapPin, Search, Filter, Plus } from '../lib/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { mockProperties } from '../data';
 import { useState, useEffect } from 'react';

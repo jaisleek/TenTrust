@@ -14,5 +14,10 @@ export default defineConfig(() => {
     server: {
       hmr: false,
     },
+    // Refresh Vite's dependency cache after package changes. This prevents
+    // stale optimized deep imports from returning 504 in the dev browser.
+    optimizeDeps: {
+      force: true,
+    },
   };
 });

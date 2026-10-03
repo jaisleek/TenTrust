@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ShieldCheck, ArrowRight, Play, Clock, Lock, Phone, Mail, MapPin, CheckCircle, Instagram, ChevronDown, MessageSquare, Sparkles, Send } from 'lucide-react';
+import { Shield, ShieldCheck, ArrowRight, Play, Clock, Lock, Phone, Mail, MapPin, CheckCircle, Instagram, ChevronDown, MessageSquare, Sparkles, Send } from '../lib/icons';
 import TenTrustVerifySection from '../components/TenTrustVerifySection';
 import ComingSoonSection from '../components/ComingSoonSection';
 import heroLaptop from '../assets/tentrust.png';

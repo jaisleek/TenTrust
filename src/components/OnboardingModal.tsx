@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Building, MessageSquare, TrendingUp, ArrowRight, ArrowLeft, CheckCircle2, Sparkles, X } from 'lucide-react';
+import { ShieldCheck, Building, MessageSquare, TrendingUp, ArrowRight, ArrowLeft, CheckCircle2, Sparkles, X } from '../lib/icons';
 
 interface OnboardingModalProps {
   isOpen: boolean;
